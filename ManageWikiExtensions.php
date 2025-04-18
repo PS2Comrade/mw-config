@@ -33,6 +33,10 @@
  * sql: array of sql files to install with extension, mapped table name => sql file path.
  */
 
+use Miraheze\MirahezeMagic\Maintenance\CreateCargoDB;
+use Miraheze\MirahezeMagic\Maintenance\PopulateWikibaseSitesTable;
+use Miraheze\MirahezeMagic\Maintenance\ResetWikiCaches;
+
 $wgManageWikiExtensions = [
 	// API
 	'pageimages' => [
@@ -261,7 +265,7 @@ $wgManageWikiExtensions = [
 		],
 		'install' => [
 			'mwscript' => [
-				"$IP/extensions/MirahezeMagic/maintenance/createCargoDB.php" => [],
+				CreateCargoDB::class => [],
 			],
 			'sql' => [
 				'cargo_tables' => "$IP/extensions/Cargo/sql/Cargo.sql",
@@ -468,8 +472,8 @@ $wgManageWikiExtensions = [
 		'requires' => [],
 		'install' => [
 			'mwscript' => [
-				"$IP/extensions/DynamicPageList3/maintenance/createTemplate.php" => [],
-				"$IP/extensions/DynamicPageList3/maintenance/createView.php" => [],
+				"$IP/extensions/DynamicPageList3/maintenance/CreateTemplate.php" => [],
+				"$IP/extensions/DynamicPageList3/maintenance/CreateView.php" => [],
 			],
 		],
 		'section' => 'parserhooks',
@@ -867,6 +871,13 @@ $wgManageWikiExtensions = [
 		'requires' => [],
 		'section' => 'parserhooks',
 	],
+	'randomimagebycategory' => [
+		'name' => 'RandomImageByCategory',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:RandomImageByCategory',
+		'conflicts' => false,
+		'requires' => [],
+		'section' => 'parserhooks',
+	],
 	'randomselection' => [
 		'name' => 'RandomSelection',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:RandomSelection',
@@ -922,6 +933,13 @@ $wgManageWikiExtensions = [
 		'conflicts' => false,
 		'requires' => [],
 		'section' => 'parserhooks'
+	],
+	'simplecalendar' => [
+		'name' => 'SimpleCalendar',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:SimpleCalendar',
+		'conflicts' => false,
+		'requires' => [],
+		'section' => 'parserhooks',
 	],
 	'simpletooltip' => [
 		'name' => 'SimpleTooltip',
@@ -1063,13 +1081,6 @@ $wgManageWikiExtensions = [
 	'titleicon' => [
 		'name' => 'Title Icon',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:Title_Icon',
-		'conflicts' => false,
-		'requires' => [],
-		'section' => 'parserhooks',
-	],
-	'twittertag' => [
-		'name' => 'Twitter Tag',
-		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:TwitterTag',
 		'conflicts' => false,
 		'requires' => [],
 		'section' => 'parserhooks',
@@ -1279,6 +1290,65 @@ $wgManageWikiExtensions = [
 				'sysop' => [
 					'permissions' => [
 						'adminlinks',
+					],
+				],
+			],
+		],
+		'section' => 'specialpages',
+	],
+	'campaignevents' => [
+		'name' => 'CampaignEvents',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:CampaignEvents',
+		'conflicts' => false,
+		'help' => 'Stewards: Do not enable this without T&S authority',
+		'requires' => [
+			'permissions' => [
+				'managewiki-restricted',
+			],
+		],
+		'install' => [
+			'sql' => [
+				'campaign_events' => "$IP/extensions/CampaignEvents/db_patches/mysql/tables-generated.sql",
+			],
+			'namespaces' => [
+				'Event' => [
+					'id' => 1728,
+					'searchable' => 0,
+					'subpages' => 1,
+					'protection' => '',
+					'content' => 0,
+					'aliases' => [],
+					'contentmodel' => 'wikitext',
+					'additional' => [],
+				],
+				'Event_talk' => [
+					'id' => 1729,
+					'searchable' => 0,
+					'subpages' => 1,
+					'protection' => '',
+					'content' => 0,
+					'aliases' => [],
+					'contentmodel' => 'wikitext',
+					'additional' => [],
+				],
+			],
+			'permissions' => [
+				'sysop' => [
+					'permissions' => [
+						'campaignevents-delete-registration',
+					],
+					'addgroups' => [
+						'event-organizer',
+					],
+					'removegroups' => [
+						'event-organizer',
+					],
+				],
+				'event-organizer' => [
+					'permissions' => [
+						'campaignevents-enable-registration',
+						'campaignevents-organize-events',
+						'campaignevents-email-participants',
 					],
 				],
 			],
@@ -1680,7 +1750,7 @@ $wgManageWikiExtensions = [
 	'pageschemas' => [
 		'name' => 'Page Schemas',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:Page_Schemas',
-		'conflicts' => 'semanticmediawiki',
+		'conflicts' => false,
 		'requires' => [],
 		'install' => [
 			'permissions' => [
@@ -1750,7 +1820,7 @@ $wgManageWikiExtensions = [
 	'replacetext' => [
 		'name' => 'Replace Text',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:Replace_Text',
-		'help' => 'Stewards and Wiki Mechanics: This extension should NOT be enabled on wikis created before May 12 without consulting the <a href="https://meta.miraheze.org/wiki/Special:MyLanguage/Tech:Volunteers" target="_blank">Technology Team</a> first',
+		'help' => 'Stewards and Wiki Mechanics: This extension should NOT be enabled on wikis created before 12 May 2024 without consulting the <a href="https://meta.miraheze.org/wiki/Special:MyLanguage/Tech:Volunteers" target="_blank">Technology Team</a> first',
 		'conflicts' => false,
 		'requires' => [
 			'permissions' => [
@@ -2010,6 +2080,19 @@ $wgManageWikiExtensions = [
 		],
 		'section' => 'other',
 	],
+	'articlefeedbackv5' => [
+		'name' => 'ArticleFeedbackv5',
+		'displayname' => 'ArticleFeedbackv5',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:ArticleFeedbackv5',
+		'conflicts' => false,
+		'requires' => [],
+		'install' => [
+			'sql' => [
+				'aft_feedback' => "$IP/extensions/ArticleFeedbackv5/sql/ArticleFeedbackv5.sql"
+			],
+		],
+		'section' => 'other',
+	],
 	'articleplaceholder' => [
 		'name' => 'ArticlePlaceholder',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:ArticlePlaceholder',
@@ -2146,12 +2229,13 @@ $wgManageWikiExtensions = [
 		],
 		'install' => [
 			'mwscript' => [
+				ResetWikiCaches::class => [],
 				"$IP/extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php" => [],
 				"$IP/extensions/CirrusSearch/maintenance/ForceSearchIndex.php" => [
-					'skipLinks' => false,
-					'indexOnSkip' => false,
+					'skipLinks' => true,
+					'indexOnSkip' => true,
 					'repeat-with' => [
-						'skipParse' => false,
+						'skipParse' => true,
 					],
 				],
 			],
@@ -2245,6 +2329,14 @@ $wgManageWikiExtensions = [
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:DynamicSidebar',
 		'conflicts' => false,
 		'requires' => [],
+		'section' => 'other',
+	],
+	'editsimilar' => [
+		'name' => 'EditSimilar',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:EditSimilar',
+		'conflicts' => false,
+		'requires' => [],
+		'install' => [],
 		'section' => 'other',
 	],
 	'editsubpages' => [
@@ -2918,11 +3010,31 @@ $wgManageWikiExtensions = [
 					'protection' => 'edit',
 					'content' => 0,
 					'aliases' => [],
-					'contentmodel' => 'wikitext',
+					'contentmodel' => 'blog_post',
 					'additional' => []
 				],
 				'User_blog_talk' => [
 					'id' => 503,
+					'searchable' => 0,
+					'subpages' => 1,
+					'protection' => '',
+					'content' => 0,
+					'aliases' => [],
+					'contentmodel' => 'wikitext',
+					'additional' => []
+				],
+				'Blog' => [
+					'id' => 1502,
+					'searchable' => 1,
+					'subpages' => 1,
+					'protection' => '',
+					'content' => 0,
+					'aliases' => [],
+					'contentmodel' => 'blog_post',
+					'additional' => []
+				],
+				'Blog_talk' => [
+					'id' => 1503,
 					'searchable' => 0,
 					'subpages' => 1,
 					'protection' => '',
@@ -3003,7 +3115,7 @@ $wgManageWikiExtensions = [
 		'displayname' => 'StructuredDiscussions (Flow)',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:StructuredDiscussions',
 		'conflicts' => false,
-		'help' => 'Deprecated by WMF, who recommends DiscussionTools instead.',
+		'help' => 'No new installed permitted: Deprecated by WMF, please use DiscussionTools instead.',
 		'requires' => [
 			'permissions' => [
 				'managewiki-restricted',
@@ -3290,7 +3402,7 @@ $wgManageWikiExtensions = [
 		'requires' => [],
 		'install' => [
 			'sql' => [
-				'titlekey' => "$IP/extensions/TitleKey/sql/titlekey.sql"
+				'titlekey' => "$IP/extensions/TitleKey/db_patches/tables-generated.sql"
 			],
 			'mwscript' => [
 				"$IP/extensions/TitleKey/maintenance/rebuildTitleKeys.php" => []
@@ -3396,7 +3508,7 @@ $wgManageWikiExtensions = [
 				'wb_property_info' => "$IP/extensions/Wikibase/repo/sql/mysql/wb_property_info.sql"
 			],
 			'mwscript' => [
-				"$IP/extensions/MirahezeMagic/maintenance/populateWikibaseSitesTable.php" => [],
+				PopulateWikibaseSitesTable::class => [],
 			],
 		],
 		'section' => 'other',
@@ -3660,20 +3772,6 @@ $wgManageWikiExtensions = [
 		'requires' => [],
 		'section' => 'skins',
 	],
-	'evelution' => [
-		'name' => 'Evelution',
-		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Skin:Evelution',
-		'conflicts' => false,
-		'requires' => [],
-		'section' => 'skins',
-	],
-	'eveskin' => [
-		'name' => "Eveskin",
-		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Skin:Eveskin',
-		'conflicts' => false,
-		'requires' => [],
-		'section' => 'skins',
-	],
 	'femiwiki' => [
 		'name' => 'Femiwiki',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Skin:Femiwiki',
@@ -3698,6 +3796,13 @@ $wgManageWikiExtensions = [
 	'hassomecolours' => [
 		'name' => 'HasSomeColours',
 		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Skin:HasSomeColours',
+		'conflicts' => false,
+		'requires' => [],
+		'section' => 'skins',
+	],
+	'lakeus' => [
+		'name' => 'Lakeus',
+		'linkPage' => 'https://www.mediawiki.org/wiki/Special:MyLanguage/Skin:Lakeus',
 		'conflicts' => false,
 		'requires' => [],
 		'section' => 'skins',

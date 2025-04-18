@@ -1,5 +1,9 @@
 <?php
 
+use Wikimedia\ObjectCache\MemcachedPeclBagOStuff;
+use Wikimedia\ObjectCache\MultiWriteBagOStuff;
+use Wikimedia\ObjectCache\RedisBagOStuff;
+
 $wgMemCachedServers = [];
 $wgMemCachedPersistent = false;
 
@@ -11,6 +15,8 @@ if ( !$beta ) {
 		'[2602:294:0:b13::110]:81',
 		/** cp37 */
 		'[2602:294:0:b23::112]:81',
+		/** cp38 */
+		'[2602:294:0:b33::102]:81',
 	];
 }
 
@@ -35,7 +41,14 @@ $wgObjectCaches['mcrouter-primary-dc'] = array_merge(
 $wgMirahezeMagicMemcachedServers = [
 	[ '10.0.15.113', 11211 ],
 	[ '10.0.16.131', 11211 ],
+	[ '10.0.20.148', 11211 ]
 ];
+
+if ( $beta ) {
+	$wgMirahezeMagicMemcachedServers = [
+		[ '10.0.15.118', 11211 ],
+	];
+}
 
 $wgObjectCaches['mysql-multiwrite'] = [
 	'class' => MultiWriteBagOStuff::class,
@@ -150,6 +163,7 @@ $wgDLPMaxCacheTime = 604800;
 
 $wgDLPQueryCacheTime = 120;
 $wgDplSettings['queryCacheTime'] = 120;
+$wgDplSettings['recursivePreprocess'] = true;
 
 $wgSearchSuggestCacheExpiry = 10800;
 
@@ -161,18 +175,12 @@ if ( $wgDBname !== 'solarawiki' && $wgDBname !== 'constantnoblewiki' && $wgDBnam
 $wgUseLocalMessageCache = true;
 $wgInvalidateCacheOnLocalSettingsChange = false;
 
-$wgResourceLoaderUseObjectCacheForDeps = true;
-
 $wgCdnMatchParameterOrder = false;
 
 if ( $beta ) {
-	$redisServerIP = $beta ?
-		'10.0.15.118:6379' :
-		'10.0.17.120:6379';
-
 	$wgJobTypeConf['default'] = [
 		'class' => JobQueueRedis::class,
-		'redisServer' => $redisServerIP,
+		'redisServer' => '10.0.15.118:6379',
 		'redisConfig' => [
 			'connectTimeout' => 2,
 			'password' => $wmgRedisPassword,
@@ -180,8 +188,6 @@ if ( $beta ) {
 		],
 		'daemonized' => true,
 	];
-
-	unset( $redisServerIP );
 }
 
 if ( PHP_SAPI === 'cli' ) {

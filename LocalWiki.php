@@ -1,7 +1,8 @@
 <?php
 
 use MediaWiki\Actions\ActionEntryPoint;
-use MediaWiki\Linker\Linker;
+use MediaWiki\EditPage\EditPage;
+use MediaWiki\Html\Html;
 use MediaWiki\Output\OutputPage;
 use MediaWiki\Request\WebRequest;
 use MediaWiki\SpecialPage\DisabledSpecialPage;
@@ -56,15 +57,23 @@ switch ( $wi->dbname ) {
 		];
 
 		break;
-	case 'arquivopkmnwiki':
-		$wgJsonConfigs['Map.JsonConfig']['isLocal'] = true;
-		$wgJsonConfigs['Tabular.JsonConfig']['isLocal'] = true;
+	case 'battlebornwiki':
+	case 'gogiganticwiki':
+	case 'pizzatowerwiki':
+	case 'softcellwiki':
+		$wgExtensionFunctions[] = static function () {
+			global $wgEchoNotifications;
 
-		$wgJsonConfigs['Map.JsonConfig']['license'] = 'CC0-1.0';
-		$wgJsonConfigs['Tabular.JsonConfig']['license'] = 'CC0-1.0';
+			foreach ( $wgEchoNotifications as &$event ) {
+				$event['section'] = 'alert';
+			}
+		};
 
-		$wgJsonConfigs['Map.JsonConfig']['store'] = true;
-		$wgJsonConfigs['Tabular.JsonConfig']['store'] = true;
+		break;
+	case 'combatinitiationwiki':
+		$wgVectorNightMode['beta'] = true;
+		$wgVectorNightMode['logged_out'] = true;
+		$wgVectorNightMode['logged_in'] = true;
 
 		break;
 	case 'commonswiki':
@@ -78,16 +87,7 @@ switch ( $wi->dbname ) {
 		break;
 	case 'constantnoblewiki':
 		$wgDplSettings['maxResultCount'] = 2500;
-
-		break;
-	case 'datawikiwiki':
-		$wgHooks['SkinAddFooterLinks'][] = 'onSkinAddFooterLinks';
-
-		function onSkinAddFooterLinks( Skin $skin, string $key, array &$footerItems ) {
-			if ( $key === 'places' ) {
-				$footerItems['github'] = Linker::makeExternalLink( 'https://github.com/Datawiki-online', 'GitHub' );
-			}
-		}
+		$wgDplSettings['maxCategoryCount'] = 100;
 
 		break;
 	case 'dlfmwiki':
@@ -122,12 +122,35 @@ switch ( $wi->dbname ) {
 		$wgDplSettings['maxCategoryCount'] = 7;
 
 		break;
+	case 'dungeonrngwiki':
+		$wgVectorNightMode['logged_in'] = true;
+		$wgVectorNightMode['logged_out'] = true;
+
+		break;
 	case 'famedatawiki':
 		$wgHooks['BeforePageDisplay'][] = 'onBeforePageDisplay';
 
 		function onBeforePageDisplay( OutputPage $out ) {
 			$out->addMeta( 'og:image:width', '1200' );
 		}
+
+		break;
+	case 'fischwiki':
+		$wgLogRestrictions['newusers'] = 'read';
+
+		break;
+	case 'ftlmultiversewiki':
+		// Intentionally empty out $wgJsonConfigs because of this error:
+		// JsonConfig: Invalid $wgJsonConfigs['Map.JsonConfig']: Namespace 486 is already set to handle model 'json' [Called from JsonConfig\JCSingleton::parseConfiguration in /srv/mediawiki/1.43/extensions/JsonConfig/includes/JCSingleton.php at line 147] in /srv/mediawiki/1.43/includes/debug/MWDebug.php on line 498.
+		// and because it seems like a bureaucrat doesn't really care for them:
+		// https://issue-tracker.miraheze.org/T13275#266704
+		$wgJsonConfigs = [
+			'Data.JsonConfig' => [
+				'namespace' => 486,
+				'nsName' => 'Data',
+			],
+		];
+		// $wgJsonConfigModels['Data.JsonConfig'] is set in LocalSettings.php <3
 
 		break;
 	case 'furrnationswiki':
@@ -242,6 +265,13 @@ switch ( $wi->dbname ) {
 	case 'houkai2ndwiki':
 		$wgSpecialPages['Analytics'] = DisabledSpecialPage::getCallback( 'Analytics', 'MatomoAnalytics-disabled' );
 		$wgPageImagesScores['position'] = [ 100, -100, -100, -100 ];
+	
+		break;
+	case 'kaiserreichwiki':
+		$wgVectorNightMode['beta'] = true;
+		$wgVectorNightMode['logged_out'] = true;
+		$wgVectorNightMode['logged_in'] = true;
+	
 		break;
 	case 'kagagawiki':
 		$uwCcAvailableLanguages = [
@@ -343,8 +373,37 @@ switch ( $wi->dbname ) {
 		];
 
 		break;
+	case 'cgwiki':
+		// T13424: Redirect User:Example?action=edit&redlink=1 -> User:Example
+		// to display the UserProfileV2 stuff when following redlinks (if the
+		// user wants to intentionally edit their user page, then a request
+		// URI of User:Example?action=edit will be sent)
+		$wgHooks['AlternateEdit'][] = 'onAlternateEdit';
+
+		function onAlternateEdit( EditPage $editPage ) {
+			$title = $editPage->getTitle();
+			// Bail if we're not in a user page
+			if ( !$title->inNamespace( NS_USER ) ) {
+				return true;
+			}
+
+			$context = $editPage->getContext();
+			if (
+				// If redlink=1 is set
+				$context->getRequest()->getBool( 'redlink' )
+				// and if we're not on a subpage
+				&& $title->equals( $title->getRootTitle() )
+			) {
+				$context->getOutput()->redirect( $title->getFullURL() );
+				return false;
+			}
+
+			return true;
+		}
+
+		// Intentional fallthrough as stuff here is meant to apply for cgwiki + lhmnwiki
 	case 'lhmnwiki':
-		// UploadWizard configurations
+		// UploadWizard
 		$wgUploadWizardConfig = [
 			'tutorial' => [
 				'skip' => false,
@@ -381,7 +440,7 @@ switch ( $wi->dbname ) {
 				'snxyz' => [
 					'msg' => 'mwe-upwiz-license-snxyz',
 					'msgExplain' => 'mwe-upwiz-license-snxyz-explain',
-					'url' => '//songngu.xyz/',
+					'url' => '//songngu.xyz/giayphep',
 					'template' => 'SNXYZ',
 					'languageCodePrefix' => 'licenses.',
 					'availableLanguages' => 'vi'
@@ -436,11 +495,11 @@ switch ( $wi->dbname ) {
 			]
 		];
 
-		// SocialProfile/UserStats configurations
+		// SocialProfile/UserStats
 		if ( $wi->isExtensionActive( 'SocialProfile' ) ) {
 			require_once "$IP/extensions/SocialProfile/UserStats/EditCount.php";
 
-			// User level definitions
+			// Định nghĩa cấp độ
 			$wgUserLevels = [
 				'Lớp lá' => 0,
 				'Mầm non' => 1200,
@@ -460,12 +519,132 @@ switch ( $wi->dbname ) {
 				'Cao học' => 1000000
 			];
 		}
-		break;
-	case 'libertygamewiki':
-		$wgHooks['BeforePageDisplay'][] = 'onBeforePageDisplay';
 
-		function onBeforePageDisplay( OutputPage $out ) {
-			$out->addMeta( 'viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' );
+		// ContactForm
+		$wgContactConfig['default'] = [
+			'RecipientEmail' => 'hotro@lophocmatngu.wiki',
+			'SenderName' => 'Liên hệ từ WLHMN',
+			'RequireDetails' => true,
+			'NameReadonly' => false,
+			'EmailReadonly' => false,
+			'SubjectReadonly' => false,
+			'UseCustomBlockMessage' => false,
+			'Redirect' => null,
+			'RLModules' => [],
+			'RLStyleModules' => [],
+			'AdditionalFields' => [
+				'Text' => [
+					'label-message' => 'emailmessage',
+					'type' => 'textarea',
+					'required' => true,
+				],
+			],
+			'FieldsMergeStrategy' => null
+		];
+
+		$wgContactConfig['banquyen'] = [
+			'RecipientEmail' => 'banquyen@lophocmatngu.wiki',
+			'SenderName' => 'Xử lý bản quyền WLHMN',
+			'RequireDetails' => true,
+			'NameReadonly' => false,
+			'EmailReadonly' => false,
+			'SubjectReadonly' => true,
+			'UseCustomBlockMessage' => false,
+			'Redirect' => null,
+			'RLModules' => [],
+			'RLStyleModules' => [],
+			'AdditionalFields' => [
+				'DiaChi' => [
+					'class' => 'HTMLTextField',
+					'label-message' => 'banquyen-label-diachi',
+					'help-message' => 'banquyen-help-giaithich2',
+					'required' => true,
+				],
+				'ToChuc' => [
+					'class' => 'HTMLTextField',
+					'label-message' => 'banquyen-label-tochuc',
+					'help-message' => 'banquyen-help-giaithich3',
+					'required' => false,
+				],
+				'ChucVu' => [
+					'class' => 'HTMLTextField',
+					'label-message' => 'banquyen-label-chucvu',
+					'help-message' => 'banquyen-help-giaithich4',
+					'required' => true,
+				],
+				'SoDienThoai' => [
+					'class' => 'HTMLTextField',
+					'label-message' => 'banquyen-label-sdt',
+					'help-message' => 'banquyen-help-giaithich5',
+					'required' => true,
+				],
+				'DoiTuong' => [
+					'class' => 'HTMLSelectField',
+					'label-message' => 'banquyen-label-luachon',
+					'options-message' => 'banquyen-list-luachon',
+					'help-message' => 'banquyen-help-giaithich7',
+					'type' => 'textarea',
+					'required' => true,
+				],
+				'LienKet' => [
+					'label-message' => 'banquyen-label-url',
+					'help-message' => 'banquyen-help-giaithich8',
+					'type' => 'textarea',
+					'rows' => 5,
+					'required' => true,
+				],
+				'NoiDung' => [
+					'label-message' => 'banquyen-label-giaithich',
+					'help-message' => 'banquyen-help-giaithich9',
+					'type' => 'textarea',
+					'rows' => 10,
+					'required' => true,
+				],
+				'XacNhan1' => [
+					'class' => 'HTMLCheckField',
+					'label-message' => 'banquyen-label-xacnhan1',
+					'required' => true,
+				],
+				'XacNhan2' => [
+					'class' => 'HTMLCheckField',
+					'label-message' => 'banquyen-label-xacnhan2',
+					'required' => true,
+				],
+				'XacNhan3' => [
+					'class' => 'HTMLCheckField',
+					'label-message' => 'banquyen-label-xacnhan3',
+					'required' => true,
+				],
+				'KySo' => [
+					'class' => 'HTMLTextField',
+					'label-message' => 'banquyen-label-chuky',
+					'help-message' => 'banquyen-help-giaithich6',
+					'required' => true,
+				],
+			],
+			'FieldsMergeStrategy' => 'replace',
+		];
+
+		$wgHooks['SkinAddFooterLinks'][] = 'onSkinAddFooterLinks';
+
+		function onSkinAddFooterLinks( Skin $skin, string $key, array &$footerItems ) {
+			if ( $key === 'places' ) {
+				$footerlinks['lienhe'] = Html::rawElement( 'a',
+					[
+						'href' => 'https://lophocmatngu.wiki/Đặc_biệt:Liên_hệ',
+						'rel' => 'nofollow noreferrer noopener',
+					],
+					$skin->msg( 'contactpage-label' )->text()
+				);
+
+				$footerlinks['banquyen'] = Html::rawElement( 'a',
+					[
+						'href' => 'https://lophocmatngu.wiki/Đặc_biệt:Liên_hệ/banquyen',
+						'rel' => 'nofollow noreferrer noopener',
+					],
+					$skin->msg( 'crpage-label' )->text()
+				);
+			}
 		}
 
 		break;
@@ -617,13 +796,21 @@ switch ( $wi->dbname ) {
 		$wgDplSettings['allowUnlimitedResults'] = true;
 
 		break;
+	case 'namuwitchwiki':
+		$wgDisableLangConversion = true;
+	
+		break;
 	case 'newusopediawiki':
 		$wgFilterLogTypes['comments'] = false;
 
 		break;
-	case 'nycsubwaywiki':
-		unset( $wgGroupPermissions['interwiki-admin'] );
-		unset( $wgGroupPermissions['no-ipinfo'] );
+	case 'openfrontwiki':
+		$wgJsonConfigs['Tabular.JsonConfig']['remote'] = [
+			'url' => 'https://commons.wikimedia.org/w/api.php'
+		];
+		$wgJsonConfigs['Map.JsonConfig']['remote'] = [
+			'url' => 'https://commons.wikimedia.org/w/api.php'
+		];
 
 		break;
 	case 'persistwiki':
@@ -634,15 +821,6 @@ switch ( $wi->dbname ) {
 		$wgLogos = [
 			'svg' => "https://static.wikitide.net/picrosswiki/0/0a/Pikuw.svg",
 		];
-		break;
-	case 'pokemundowiki':
-		$wgHooks['BeforePageDisplay'][] = 'onBeforePageDisplay';
-
-		function onBeforePageDisplay( OutputPage $out ) {
-			$out->addLink( [ 'rel' => 'preconnect', 'href' => 'https://fonts.gstatic.com' ] );
-			$out->addLink( [ 'rel' => 'stylesheet', 'href' => 'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap' ] );
-		}
-
 		break;
 	case 'paneidoversewiki':
 		$wgHooks['AdminLinks'][] = 'onAdminLinks';
@@ -702,6 +880,8 @@ switch ( $wi->dbname ) {
 		break;
 	case 'roguetown2ewiki':
 		$wgMinervaNightMode['base'] = true;
+		$wgVectorNightMode['logged_in'] = true;
+		$wgVectorNightMode['logged_out'] = true;
 
 		break;
 	case 'sagan4wiki':
@@ -717,20 +897,27 @@ switch ( $wi->dbname ) {
 		}
 
 		break;
-	case 'srewiki':
-		wfLoadExtension( 'LdapAuthentication' );
+	case 'stopxwiki':
+		$wgHooks['SkinAddFooterLinks'][] = 'onSkinAddFooterLinks';
 
-		$wgAuthManagerAutoConfig['primaryauth'] += [
-			LdapPrimaryAuthenticationProvider::class => [
-				'class' => LdapPrimaryAuthenticationProvider::class,
-				'args' => [ [
-					// don't allow local non-LDAP accounts
-					'authoritative' => true,
-				] ],
-				// must be smaller than local pw provider
-				'sort' => 50,
-			],
-		];
+		function onSkinAddFooterLinks( Skin $skin, string $key, array &$footerItems ) {
+			if ( $key === 'places' ) {
+				$footerlinks['contact'] = Html::rawElement( 'a',
+					[
+						'href' => 'mailto:tekannabrand@gmail.com',
+						'rel' => 'nofollow noreferrer noopener',
+					],
+					$skin->msg( 'contactpage' )->text()
+				);
+				$footerlinks['stopxpolicy'] = Html::rawElement( 'a',
+					[
+						'href' => 'https://tekannabrand.org/wiki/TermsOfService',
+						'rel' => 'nofollow noreferrer noopener',
+					],
+					$skin->msg( 'stopxpolicypage' )->text()
+				);
+			}
+		}
 
 		break;
 	case 'testwikibeta':
@@ -800,7 +987,6 @@ switch ( $wi->dbname ) {
 
 		break;
 	case 'traceprojectwikiwiki':
-	case 'vgportdbwiki':
 		$wgDplSettings['allowUnlimitedCategories'] = true;
 		$wgDplSettings['allowUnlimitedResults'] = true;
 
@@ -808,18 +994,6 @@ switch ( $wi->dbname ) {
 	case 'whentheycrywiki':
 		$wgGalleryOptions['imageWidth'] = 200;
 		$wgGalleryOptions['imageHeight'] = 200;
-
-		break;
-	case 'wonderingstarswiki':
-		$wgPivotFeatures = [
-			'showActionsForAnon' => false,
-			'fixedNavBar' => true,
-			'usePivotTabs' => true,
-			'showRecentChangesUnderTools' => false,
-		];
-		break;
-	case 'worldboxwiki':
-		$wgSpecialPages['Analytics'] = DisabledSpecialPage::getCallback( 'Analytics', 'MatomoAnalytics-disabled' );
 
 		break;
 	case 'genshinimpactwiki':

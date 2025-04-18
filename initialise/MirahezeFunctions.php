@@ -3,6 +3,8 @@
 use MediaWiki\Config\SiteConfiguration;
 use MediaWiki\Context\IContextSource;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Registration\ExtensionProcessor;
+use MediaWiki\Registration\ExtensionRegistry;
 use Miraheze\CreateWiki\Services\RemoteWikiFactory;
 use Miraheze\ManageWiki\Helpers\ManageWikiSettings;
 use Wikimedia\Rdbms\IDatabase;
@@ -319,9 +321,11 @@ class MirahezeFunctions {
 			$explode = explode( '.', $explode[1], 2 );
 		}
 
-		foreach ( self::SUFFIXES as $suffix => $sites ) {
-			if ( in_array( $explode[1], $sites ) && ( $ignorePrimary || $explode[1] === self::getPrimaryDomain( $explode[0] . $suffix ) ) ) {
-				return $explode[0] . $suffix;
+		if ( isset( $explode[1] ) ) {
+			foreach ( self::SUFFIXES as $suffix => $sites ) {
+				if ( in_array( $explode[1], $sites ) && ( $ignorePrimary || $explode[1] === self::getPrimaryDomain( $explode[0] . $suffix ) ) ) {
+					return $explode[0] . $suffix;
+				}
 			}
 		}
 
@@ -961,7 +965,7 @@ class MirahezeFunctions {
 	 * @param string $globalDatabase
 	 * @return array
 	 */
-	private static function generateDatabaseLists( string $globalDatabase ) {
+	private static function generateDatabaseLists( string $globalDatabase ): array {
 		$dbr = self::getDatabaseConnection( $globalDatabase );
 		$allWikis = $dbr->newSelectQueryBuilder()
 			->table( 'cw_wikis' )
@@ -1049,8 +1053,9 @@ class MirahezeFunctions {
 
 	/**
 	 * @param array &$databaseLists
+	 * @return void
 	 */
-	public static function onGenerateDatabaseLists( array &$databaseLists ) {
+	public static function onGenerateDatabaseLists( array &$databaseLists ): void {
 		$isBeta = php_uname( 'n' ) === self::BETA_HOSTNAME;
 
 		$databases = self::generateDatabaseLists(
@@ -1076,12 +1081,13 @@ class MirahezeFunctions {
 	 * @param string $wiki
 	 * @param IReadableDatabase $dbr
 	 * @param array &$cacheArray
+	 * @return void
 	 */
 	public static function onCreateWikiDataFactoryBuilder(
 		string $wiki,
 		IReadableDatabase $dbr,
 		array &$cacheArray
-	) {
+	): void {
 		$row = $dbr->newSelectQueryBuilder()
 			->table( 'cw_wikis' )
 			->fields( [
@@ -1097,12 +1103,20 @@ class MirahezeFunctions {
 	}
 
 	/**
-	 * @param bool $ceMW
 	 * @param IContextSource $context
+	 * @param RemoteWikiFactory $remoteWiki
 	 * @param string $dbName
+	 * @param bool $ceMW
 	 * @param array &$formDescriptor
+	 * @return void
 	 */
-	public static function onManageWikiCoreAddFormFields( $ceMW, $context, $dbName, &$formDescriptor ) {
+	public static function onManageWikiCoreAddFormFields(
+		IContextSource $context,
+		RemoteWikiFactory $remoteWiki,
+		string $dbName,
+		bool $ceMW,
+		array &$formDescriptor
+	): void {
 		$permissionManager = MediaWikiServices::getInstance()->getPermissionManager();
 
 		$mwVersion = self::getMediaWikiVersion( $dbName );
@@ -1123,7 +1137,7 @@ class MirahezeFunctions {
 		];
 
 		$mwSettings = new ManageWikiSettings( $dbName );
-		$setList = $mwSettings->list();
+		$setList = $mwSettings->list( null );
 		$formDescriptor['article-path'] = [
 			'label-message' => 'miraheze-label-managewiki-article-path',
 			'type' => 'select',
@@ -1159,12 +1173,19 @@ class MirahezeFunctions {
 
 	/**
 	 * @param IContextSource $context
-	 * @param string $dbName
 	 * @param IDatabase $dbw
+	 * @param RemoteWikiFactory $remoteWiki
+	 * @param string $dbName
 	 * @param array $formData
-	 * @param RemoteWikiFactory &$remoteWiki
+	 * @return void
 	 */
-	public static function onManageWikiCoreFormSubmission( $context, $dbName, $dbw, $formData, &$remoteWiki ) {
+	public static function onManageWikiCoreFormSubmission(
+		IContextSource $context,
+		IDatabase $dbw,
+		RemoteWikiFactory $remoteWiki,
+		string $dbName,
+		array $formData
+	): void {
 		$version = self::getMediaWikiVersion( $dbName );
 		if ( $formData['mediawiki-version'] !== $version && is_dir( self::MEDIAWIKI_DIRECTORY . $formData['mediawiki-version'] ) ) {
 			$remoteWiki->addNewRow( 'wiki_version', $formData['mediawiki-version'] );
@@ -1181,7 +1202,7 @@ class MirahezeFunctions {
 
 		$mwSettings = new ManageWikiSettings( $dbName );
 
-		$articlePath = $mwSettings->list()['wgArticlePath'] ?? '';
+		$articlePath = $mwSettings->list( 'wgArticlePath' ) ?? '/wiki/$1';
 		if ( $formData['article-path'] !== $articlePath ) {
 			$mwSettings->modify( [ 'wgArticlePath' => $formData['article-path'] ] );
 			$mwSettings->commit();
@@ -1202,7 +1223,7 @@ class MirahezeFunctions {
 			);
 		}
 
-		$mainPageIsDomainRoot = $mwSettings->list()['wgMainPageIsDomainRoot'] ?? false;
+		$mainPageIsDomainRoot = $mwSettings->list( 'wgMainPageIsDomainRoot' ) ?? false;
 		if ( $formData['mainpage-is-domain-root'] !== $mainPageIsDomainRoot ) {
 			$mwSettings->modify( [ 'wgMainPageIsDomainRoot' => $formData['mainpage-is-domain-root'] ] );
 			$mwSettings->commit();
